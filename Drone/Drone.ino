@@ -16,17 +16,25 @@ volatile byte current_channel = 0;
 
 int control_command[4];
 
+double yaw = 0;
+double pitch = 0;
+double roll = 0;
+
+double acc_x = 0;
+double acc_y = 0;
+double acc_z = 0;
+
 double Kp_roll = 1;
-double Ki_roll = 1;
-double Kd_roll = 1;
+double Ki_roll = 0;
+double Kd_roll = 0;
 
-double Kp_pitch = 1;
-double Ki_pitch = 1;
-double Kd_pitch = 1;
+double Kp_pitch = 0;
+double Ki_pitch = 0;
+double Kd_pitch = 0;
 
-double Kp_yaw = 1;
-double Ki_yaw = 1;
-double Kd_yaw = 1;
+double Kp_yaw = 0;
+double Ki_yaw = 0;
+double Kd_yaw = 0;
 
 double roll_err = 0;
 double pitch_err = 0;
@@ -40,34 +48,66 @@ double roll_i = 0;
 double pitch_i = 0;
 double yaw_i = 0;
 
-byte M1 = 0;
-byte M2 = 0;
-byte M3 = 0;
-byte M4 = 0;
+int M1 = 0;
+int M2 = 0;
+int M3 = 0;
+int M4 = 0;
 double PID_frequency = 0.005;
 
 void setup() {
   Serial.begin(9600);
+  attachMotors();
+  delay(5000);
+  motorTest();
+  
   attachInterrupt(digitalPinToInterrupt(2), handle_interrupt, CHANGE);
   setupMPU();
-  updateMPU();
+  updateMPU(yaw, pitch, roll, acc_x, acc_y, acc_z);
   while(!mpuReady());
-  attachMotors();
-  delay(10000);
   
 }
 
 void loop() {
   updateCommand();
-  updateMPU();
+  updateMPU(yaw, pitch, roll, acc_x, acc_y, acc_z);
+
+//  Serial.print("areal\t");
+//  Serial.print(acc_x);
+//  Serial.print("\t");
+//  Serial.print(acc_y);
+//  Serial.print("\t");
+//  Serial.println(acc_z);
+
+//  Serial.print("ypr: ");
+//  Serial.print(yaw);
+//  Serial.print("\t");
+//  Serial.print(pitch);
+//  Serial.print("\t");
+//  Serial.println(roll);
+  
   PID_Loop();
 }
 
 void updateCommand(){
-  control_command[0] = map(channel_values[0], 600, 1600, -100, 100);
-  control_command[1] = map(channel_values[1], 600, 1600, -100, 100);
-  control_command[2] = map(channel_values[2], 600, 1600, 0, 180);
-  control_command[3] = map(channel_values[3], 600, 1600, -100, 100);
+  control_command[0] = constrain(channel_values[0], 600, 1600);
+  control_command[1] = constrain(channel_values[1], 600, 1600);
+  control_command[2] = constrain(channel_values[2], 600, 1600);
+  control_command[3] = constrain(channel_values[3], 600, 1600);
+  
+  control_command[0] = map(control_command[0], 600, 1600, -100, 100);
+  control_command[1] = map(control_command[1], 600, 1600, -100, 100);
+  control_command[2] = map(control_command[2], 600, 1600, 0, 180);
+  control_command[3] = map(control_command[3], 600, 1600, -100, 100);
+
+//  Serial.print("Control Commands: ");
+//  Serial.print(control_command[0]);
+//  Serial.print("\t");
+//  Serial.print(control_command[1]);
+//  Serial.print("\t");
+//  Serial.print(control_command[2]);
+//  Serial.print("\t");
+//  Serial.println(control_command[3]);
+  control_command[0] = 0;
   }
 
 void attachMotors(){
@@ -80,15 +120,34 @@ void attachMotors(){
   motor3.write(0);
   motor4.write(0);
   }
-  
+
+void motorTest(){
+  for(int i = 0; i<30; i++){
+    motor1.write(i);
+    motor2.write(i);
+    motor3.write(i);
+    motor4.write(i);
+    delay(20);
+    }
+  for(int i = 30; i>0; i--){
+    motor1.write(i);
+    motor2.write(i);
+    motor3.write(i);
+    motor4.write(i);
+    delay(50);
+    }
+  }
+
 void PID_Loop(){
   calculateErrors();
   double roll_PID = getPID(roll_err, Kp_roll, Ki_roll, Kd_roll, roll_i, prev_roll_err, PID_frequency);
   double pitch_PID = getPID(pitch_err, Kp_pitch, Ki_pitch, Kd_pitch, pitch_i, prev_pitch_err, PID_frequency);
   double yaw_PID = getPID(yaw_err, Kp_yaw, Ki_yaw, Kd_yaw, yaw_i, prev_yaw_err, PID_frequency);
   
-//  Serial.print("Roll PID: ");
-//  Serial.print(roll_PID);
+  Serial.print("Roll PID: ");
+  Serial.print(roll_PID);
+  Serial.print("\t");
+
 //  Serial.print("Pitch PID: ");
 //  Serial.print(pitch_PID);
 //  Serial.print("Yaw PID: ");
@@ -99,16 +158,22 @@ void PID_Loop(){
 }
 
 void calculateErrors(){
-//  Serial.print("Roll: ");
-//  Serial.print(getRoll());
+  Serial.print("Roll: ");
+  Serial.print(roll);
+  Serial.print("\t");
+  
 //  Serial.print("Pitch: ");
 //  Serial.print(getPitch());
 //  Serial.print("Yaw: ");
 //  Serial.println(getYaw());
   
-  roll_err = control_command[0] - getRoll();
-  pitch_err = control_command[1] - getPitch();
-  yaw_err = control_command[3] - getYaw();
+  roll_err = control_command[0] - roll;
+  pitch_err = control_command[1] - pitch;
+  yaw_err = control_command[3] - yaw;
+
+  Serial.print("Error: ");
+  Serial.print(roll_err);
+  Serial.print("\t");
   }
 
 void calculateMotorSpeeds(double rol, double pit, double yaw){
@@ -116,6 +181,11 @@ void calculateMotorSpeeds(double rol, double pit, double yaw){
   M2 = control_command[2] - rol + pit + yaw;
   M3 = control_command[2] - rol - pit - yaw;
   M4 = control_command[2] + rol - pit + yaw;
+
+  M1<0?M1=0:M1=M1;
+  M2<0?M2=0:M2=M2;
+  M3<0?M3=0:M3=M3;
+  M4<0?M4=0:M4=M4;
 
   M1 = constrain(M1, 0, 180);
   M2 = constrain(M2, 0, 180);
@@ -126,11 +196,11 @@ void calculateMotorSpeeds(double rol, double pit, double yaw){
 void updateSpeed(){
   Serial.print("Motors: ");
   Serial.print(M1);
-  Serial.print("    ");
+  Serial.print("\t");
   Serial.print(M2);
-  Serial.print("    ");
+  Serial.print("\t");
   Serial.print(M3);
-  Serial.print("    ");
+  Serial.print("\t");
   Serial.println(M4);
   
   motor1.write(M1);
