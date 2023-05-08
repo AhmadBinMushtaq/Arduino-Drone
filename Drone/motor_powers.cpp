@@ -16,13 +16,13 @@ double roll_pid_i, roll_last_error, pitch_pid_i, pitch_last_error, yaw_pid_i, ya
 double roll_control_signal, pitch_control_signal, yaw_control_signal;
 
 void InitializePIDConstants(){
-  pid.KP_roll_pitch = 0.30;
-  pid.KI_roll_pitch = 0.10;
-  pid.KD_roll_pitch = 0.10;
+  pid.KP_roll_pitch = 0.28;
+  pid.KI_roll_pitch = 0.48;
+  pid.KD_roll_pitch = 0.20;
 
-  pid.KP_yaw = 0.40;
-  pid.KI_yaw = 0.50;
-  pid.KD_yaw = 0.00;
+  pid.KP_yaw = 0.05;
+  pid.KI_yaw = 0.06;
+  pid.KD_yaw = 0.01;
 
   ROLL_PITCH_CONTROL_SIGNAL_LIMIT = pid.KP_roll_pitch * QUADCOPTER_MAX_TILT_ANGLE * 2;
   }
@@ -44,10 +44,10 @@ struct MotorPowers calculateMotorPowers(struct ReceiverCommands receiverCommands
 
   // calculate power for each motor
   struct MotorPowers motorPowers;
-  motorPowers.frontLeftMotorPower = round(receiverCommands.Throttle + roll_control_signal + pitch_control_signal - yaw_control_signal);
-  motorPowers.frontRightMotorPower = round(receiverCommands.Throttle - roll_control_signal + pitch_control_signal + yaw_control_signal);
-  motorPowers.rearLeftMotorPower = round(receiverCommands.Throttle + roll_control_signal - pitch_control_signal + yaw_control_signal);
-  motorPowers.rearRightMotorPower = round(receiverCommands.Throttle - roll_control_signal - pitch_control_signal - yaw_control_signal);
+  motorPowers.frontLeftMotorPower = round(receiverCommands.Throttle + roll_control_signal - pitch_control_signal - yaw_control_signal);
+  motorPowers.frontRightMotorPower = round(receiverCommands.Throttle - roll_control_signal - pitch_control_signal + yaw_control_signal);
+  motorPowers.rearLeftMotorPower = round(receiverCommands.Throttle + roll_control_signal + pitch_control_signal + yaw_control_signal);
+  motorPowers.rearRightMotorPower = round(receiverCommands.Throttle - roll_control_signal + pitch_control_signal - yaw_control_signal);
 
   motorPowers = reduceMotorPowers(motorPowers);
 

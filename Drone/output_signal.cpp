@@ -6,6 +6,8 @@
 void initializeOutputSignals() {
   pinMode(LED_PIN, OUTPUT);
   pinMode(BUZZER_PIN, OUTPUT);
+  pinMode(A1, OUTPUT);
+  digitalWrite(A1, LOW);
   digitalWrite(LED_PIN, LOW);
   noTone(BUZZER_PIN);
 }
